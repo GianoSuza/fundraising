@@ -4,6 +4,10 @@ import 'screens/topup_screen.dart';
 import 'screens/payment_method_screen.dart';
 import 'screens/payment_confirmation_screen.dart';
 import 'screens/transaction_history_screen.dart';
+import 'screens/account_screen.dart';
+import 'screens/my_profile_screen.dart';
+import 'screens/edit_profile_screen.dart';
+import 'screens/change_password_screen.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(
@@ -41,12 +45,16 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/topup',
+      initialRoute: '/change-password',
       routes: {
         '/topup': (context) => TopupScreen(),
         '/payment-method': (context) => PaymentMethodScreen(),
         '/payment-confirmation': (context) => PaymentConfirmationScreen(),
         '/transaction-history': (context) => TransactionHistoryScreen(),
+        '/account': (context) => AccountScreen(),
+        '/my-profile': (context) => MyProfileScreen(),
+        '/edit-profile': (context) => EditProfileScreen(),
+        '/change-password': (context) => ChangePasswordScreen(),
       },
     );
   }
