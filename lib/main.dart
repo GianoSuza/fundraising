@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fundraising/screens/onboard.dart';
 import 'screens/topup_screen.dart';
 import 'screens/payment_method_screen.dart';
 import 'screens/payment_confirmation_screen.dart';
@@ -8,6 +9,9 @@ import 'screens/account_screen.dart';
 import 'screens/my_profile_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/change_password_screen.dart';
+import 'screens/signin_screen.dart';
+import 'screens/signup_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(
@@ -45,8 +49,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/change-password',
+      initialRoute: '/',
       routes: {
+        '/': (context) => SplashScreen(),
+        '/signin': (context) => LoginScreen(),
+        '/signup': (context) => SignUpScreen(),
+        '/home': (context) => HomePage(),
         '/topup': (context) => TopupScreen(),
         '/payment-method': (context) => PaymentMethodScreen(),
         '/payment-confirmation': (context) => PaymentConfirmationScreen(),
