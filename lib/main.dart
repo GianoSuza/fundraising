@@ -12,6 +12,7 @@ import 'screens/change_password_screen.dart';
 import 'screens/signin_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/donation_screen.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(
@@ -49,7 +50,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
+      initialRoute: '/onboard',
       routes: {
         '/': (context) => SplashScreen(),
         '/signin': (context) => LoginScreen(),
@@ -63,6 +64,7 @@ class MyApp extends StatelessWidget {
         '/my-profile': (context) => MyProfileScreen(),
         '/edit-profile': (context) => EditProfileScreen(),
         '/change-password': (context) => ChangePasswordScreen(),
+        '/donation': (context) => DonationDetailsPage(),
       },
     );
   }
