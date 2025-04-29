@@ -10,10 +10,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Bantu.In',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Poppins',
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Poppins'),
       home: LoginScreen(),
     );
   }
@@ -121,7 +118,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      _obscureText
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                       color: Colors.grey[500],
                     ),
                     onPressed: () {
@@ -153,9 +152,12 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton(
                 onPressed: () {
                   // Handle sign in
+                  Navigator.pushNamed(context, '/signup');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF4ECDC4), // Use primary instead of backgroundColor
+                  backgroundColor: Color(
+                    0xFF4ECDC4,
+                  ), // Use primary instead of backgroundColor
                   padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -164,10 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Text(
                   'Sign in',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                 ),
               ),
               SizedBox(height: 24),
@@ -177,14 +176,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Text(
                     "Don't have an account? ",
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   ),
                   GestureDetector(
                     onTap: () {
                       // Handle sign up
+                      Navigator.pushNamed(context, '/signup');
                     },
                     child: Text(
                       'Sign up',
@@ -202,10 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 'By signing in you accept the. Terms of Services and Privacy Policy.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
               Spacer(flex: 2),
             ],

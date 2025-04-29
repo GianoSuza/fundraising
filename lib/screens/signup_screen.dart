@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -28,8 +30,12 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   bool _obscureText = true;
-  bool _isChecked = true;
+  bool _isChecked = false;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +46,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
         title: const Text(
           'Bantu.In',
@@ -53,18 +61,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Center( // Added Center widget here
+        child: Center(
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // Added this to center vertically
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 16),
                   // Name field
                   TextField(
+                    controller: _nameController,
                     decoration: InputDecoration(
-                      hintText: 'Mohammad Salah',
-                      hintStyle: TextStyle(color: Colors.black.withOpacity(0.7)),
+                      hintText: 'Full Name',
+                      hintStyle: TextStyle(
+                        color: Colors.black.withOpacity(0.7),
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(
@@ -88,9 +100,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 16),
                   // Email field
                   TextField(
+                    controller: _emailController,
                     decoration: InputDecoration(
-                      hintText: 'mosalah@gmail.com',
-                      hintStyle: TextStyle(color: Colors.black.withOpacity(0.7)),
+                      hintText: 'Email',
+                      hintStyle: TextStyle(
+                        color: Colors.black.withOpacity(0.7),
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(
@@ -114,10 +129,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 16),
                   // Password field
                   TextField(
+                    controller: _passwordController,
                     obscureText: _obscureText,
                     decoration: InputDecoration(
-                      hintText: '••••••••',
-                      hintStyle: TextStyle(color: Colors.black.withOpacity(0.7)),
+                      hintText: 'Password',
+                      hintStyle: TextStyle(
+                        color: Colors.black.withOpacity(0.7),
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(
@@ -138,7 +156,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText ? Icons.visibility : Icons.visibility_off,
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.grey,
                         ),
                         onPressed: () {
@@ -154,7 +174,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Row(
                     children: [
                       SizedBox(
-                        width: 24,
+                        width: 18,
                         height: 24,
                         child: Checkbox(
                           value: _isChecked,
@@ -212,9 +232,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed:
+                          _isChecked
+                              ? () async {
+                                await registerUser(
+                                  _nameController.text,
+                                  _emailController.text,
+                                  _passwordController.text,
+                                  context,
+                                );
+                              }
+                              : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4ECDC4),
+                        backgroundColor:
+                            _isChecked ? const Color(0xFF4ECDC4) : Colors.grey,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
@@ -242,7 +273,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.pushNamed(context, '/signin');
+                        },
                         child: const Text(
                           'Sign in',
                           style: TextStyle(
@@ -261,5 +294,58 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> registerUser(String name, String email, String password,
+      BuildContext context) async {
+    try {
+      // Firebase should already be initialized in main()
+      // Create user with email and password
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Get the user's UID
+      String uid = userCredential.user!.uid;
+
+      // Save user data to Firestore
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User registered successfully'),
+          backgroundColor: Color(0xFF4ECDC4),
+        ),
+      );
+      
+      print('User registered successfully: $uid');
+      
+      // Navigate back to the sign-in page
+      Navigator.pop(context); // Close the registration screen
+      
+      // Optional: Navigate to sign-in page if you're not already coming from there
+      // Navigator.pushNamed(context, '/signin');
+    } on FirebaseAuthException catch (e) {
+      print('Failed with error code: ${e.code}');
+      print(e.message);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Registration failed: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      print('Failed with error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Registration error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

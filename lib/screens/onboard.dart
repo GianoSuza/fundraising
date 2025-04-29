@@ -147,7 +147,9 @@ class DonationScreen extends StatelessWidget {
               const Spacer(),
               // Button
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.pushNamed(context, '/signin');
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey.shade200,
                   foregroundColor: Colors.black87,

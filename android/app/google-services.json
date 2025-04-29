@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "418738374879",
+    "project_id": "fund-d8173",
+    "storage_bucket": "fund-d8173.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:418738374879:android:21b5fe8020a0403edf416a",
+        "android_client_info": {
+          "package_name": "com.example.fundraising"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoh8gL8txVauRLL62KExgivWRxTaGMO54"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

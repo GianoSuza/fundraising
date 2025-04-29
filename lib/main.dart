@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:fundraising/screens/onboard.dart';
 import 'screens/topup_screen.dart';
 import 'screens/payment_method_screen.dart';
@@ -13,24 +14,28 @@ import 'screens/signin_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/donation_screen.dart';
+import 'firebase_options.dart';
 
-void main() {
-  SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(statusBarColor: Colors.transparent),
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // this is important
   );
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Donation App',
       theme: ThemeData(
-        primaryColor: Color(0xFF4ECDC4),
+        primaryColor: const Color(0xFF4ECDC4),
         scaffoldBackgroundColor: Colors.white,
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF4ECDC4),
           elevation: 0,
           iconTheme: IconThemeData(color: Colors.black),
@@ -42,7 +47,7 @@ class MyApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF4ECDC4),
+            backgroundColor: const Color(0xFF4ECDC4),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
