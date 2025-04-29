@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -150,9 +152,42 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(height: 16),
               // Sign in button
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   // Handle sign in
-                  Navigator.pushNamed(context, '/signup');
+                  String email = _emailController.text.trim();
+                  String password = _passwordController.text;
+
+                  try {
+                    QuerySnapshot snapshot = await FirebaseFirestore.instance
+                        .collection('users')
+                        .where('email', isEqualTo: email)
+                        .where('password', isEqualTo: password) // Not secure, okay for testing
+                        .limit(1)
+                        .get();
+
+                    if (snapshot.docs.isNotEmpty) {
+                      var userData = snapshot.docs.first.data() as Map<String, dynamic>;
+
+                      // Save user data in SharedPreferences
+                      SharedPreferences prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('userId', snapshot.docs.first.id);
+                      await prefs.setString('userName', userData['name'] ?? '');
+                      await prefs.setString('userEmail', userData['email']);
+                      await prefs.setBool('isLoggedIn', true);
+
+                      // Navigate to homepage
+                      Navigator.pushReplacementNamed(context, '/home'); // adjust route
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Invalid credentials')),
+                      );
+                    }
+                  } catch (e) {
+                    print('Error during sign in: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Login failed: $e')),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(
