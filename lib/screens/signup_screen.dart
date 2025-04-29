@@ -170,8 +170,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Checkbox and terms
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4,
+                    runSpacing: 8,
                     children: [
                       SizedBox(
                         width: 18,
@@ -189,7 +191,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       Text(
                         'I agree ',
                         style: TextStyle(
@@ -296,50 +297,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Future<void> registerUser(String name, String email, String password,
-      BuildContext context) async {
+    Future<void> registerUser(
+      String name, String email, String password, BuildContext context) async {
     try {
-      // Firebase should already be initialized in main()
-      // Create user with email and password
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
-
-      // Get the user's UID
-      String uid = userCredential.user!.uid;
+      // Generate a unique ID manually if needed
+      String uid = FirebaseFirestore.instance.collection('users').doc().id;
 
       // Save user data to Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': name,
         'email': email,
+        'password': password,
+        'uid': uid,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('User registered successfully'),
           backgroundColor: Color(0xFF4ECDC4),
         ),
       );
-      
-      print('User registered successfully: $uid');
-      
-      // Navigate back to the sign-in page
-      Navigator.pop(context); // Close the registration screen
-      
-      // Optional: Navigate to sign-in page if you're not already coming from there
-      // Navigator.pushNamed(context, '/signin');
-    } on FirebaseAuthException catch (e) {
-      print('Failed with error code: ${e.code}');
-      print(e.message);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Registration failed: ${e.message}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+
+      print('User added');
+      Navigator.pop(context);
     } catch (e) {
-      print('Failed with error: $e');
+      print('Error adding user: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Registration error: $e'),
