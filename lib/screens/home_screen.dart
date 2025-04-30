@@ -12,7 +12,7 @@ class HomePage extends StatelessWidget {
         child: Column(
           children: [
             // Search Bar and Profile
-            _buildSearchAndProfile(),
+            _buildSearchAndProfile(context),
             
             // Main Content (White Container)
             Expanded(
@@ -42,22 +42,22 @@ class HomePage extends StatelessWidget {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: '',
+            label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle, size: 40),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: '',
+            icon: Icon(Icons.campaign),
+            label: 'My Campaigns',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchAndProfile() {
+  Widget _buildSearchAndProfile(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -74,7 +74,6 @@ class HomePage extends StatelessWidget {
                   hintText: 'Help others ...',
                   prefixIcon: Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 15),
                 ),
               ),
             ),
@@ -85,6 +84,7 @@ class HomePage extends StatelessWidget {
             child: InkWell(
               onTap: () {
                 // Fungsi untuk tombol profile akan ditambahkan di sini nanti
+                Navigator.pushNamed(context, '/account');
               },
               borderRadius: BorderRadius.circular(25),
               splashColor: const Color(0xFF4ECDC4).withOpacity(0.3),
@@ -254,9 +254,9 @@ class DonationBalanceCard extends StatelessWidget {
               ],
             ),
           ),
-          _buildActionButton(Icons.add, 'Top up'),
+          _buildActionButton(Icons.add, 'Top up', '/topup', context),
           const SizedBox(width: 16),
-          _buildActionButton(Icons.history, 'History'),
+          _buildActionButton(Icons.history, 'History', '/transaction-history', context),
         ],
       ),
     );
@@ -271,14 +271,14 @@ class DonationBalanceCard extends StatelessWidget {
     return amount.toStringAsFixed(0).replaceAllMapped(reg, mathFunc);
   }
 
-  Widget _buildActionButton(IconData icon, String label) {
+  Widget _buildActionButton(IconData icon, String label, String route, BuildContext context) {
     return Column(
       children: [
         Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
-              // Fungsi untuk tombol akan ditambahkan di sini nanti
+              Navigator.pushNamed(context, route);
             },
             borderRadius: BorderRadius.circular(20),
             splashColor: Colors.white.withOpacity(0.5),
@@ -394,6 +394,7 @@ class CampaignCard extends StatelessWidget {
         child: InkWell(
           onTap: () {
             // Fungsi untuk campaign card akan ditambahkan di sini nanti
+            Navigator.pushNamed(context, '/donation');
           },
           borderRadius: BorderRadius.circular(10),
           splashColor: const Color(0xFF4ECDC4).withOpacity(0.2),
@@ -448,7 +449,7 @@ class CampaignCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 10),
@@ -579,6 +580,7 @@ class FinishedCampaignCard extends StatelessWidget {
         child: InkWell(
           onTap: () {
             // Fungsi untuk finished campaign card akan ditambahkan di sini nanti
+            Navigator.pushNamed(context, '/donation');
           },
           borderRadius: BorderRadius.circular(10),
           splashColor: const Color(0xFF4ECDC4).withOpacity(0.2),
@@ -617,14 +619,14 @@ class FinishedCampaignCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
                           Text(
-                            'Selesai pada ${campaign.date}',
+                            campaign.date,
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 14,
@@ -632,9 +634,9 @@ class FinishedCampaignCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
-                        'Total terkumpul: ${campaign.totalDonation}',
+                        'Total terkumpul:\n${campaign.totalDonation}',
                         style: const TextStyle(
                           color: Color(0xFF4ECDC4),
                           fontWeight: FontWeight.w600,

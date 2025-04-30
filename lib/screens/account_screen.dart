@@ -133,7 +133,7 @@ class AccountScreenState extends State<AccountScreen> {
                   vertical: 8,
                 ),
                 children: [
-                  _buildMenuItem(Icons.favorite_border, 'My donation'),
+                  // _buildMenuItem(Icons.favorite_border, 'My donation'),
                   _buildMenuItem(Icons.lock_outline, 'Change password'),
                 ],
               ),
@@ -142,18 +142,25 @@ class AccountScreenState extends State<AccountScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        elevation: 0,
         backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 0,
-        unselectedFontSize: 0,
+        selectedItemColor: const Color(0xFF4ECDC4),
+        unselectedItemColor: Colors.grey,
+        currentIndex: 0,
+        onTap: (index) {
+          // Tambahkan fungsi navigasi untuk bottom bar di sini nanti
+        },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.circle_outlined), label: ''),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle, size: 40),
             label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.campaign),
+            label: 'My Campaigns',
           ),
         ],
       ),

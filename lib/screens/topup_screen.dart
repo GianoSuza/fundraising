@@ -47,7 +47,7 @@ class _TopupScreenState extends State<TopupScreen> {
           children: [
             // Status Bar and App Bar
             Padding(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
+              padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
               child: Row(
                 children: [
                   GestureDetector(

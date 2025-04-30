@@ -81,7 +81,7 @@ class TransactionHistoryScreen extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.popAndPushNamed(context, '/home');
                     },
                     child: Icon(Icons.arrow_back, color: Colors.black),
                   ),
