@@ -1,8 +1,30 @@
 // home.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  List<Map<String, dynamic>> campaigns = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadCampaigns();
+  }
+
+  Future<void> loadCampaigns() async {
+    final fetched = await fetchCampaignsFromFirestore();
+    setState(() {
+      campaigns = fetched;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +47,7 @@ class HomePage extends StatelessWidget {
                     topRight: Radius.circular(30),
                   ),
                 ),
-                child: const MainContent(),
+                child: MainContent(campaigns: campaigns),
               ),
             ),
           ],
@@ -37,7 +59,17 @@ class HomePage extends StatelessWidget {
         unselectedItemColor: Colors.grey,
         currentIndex: 0,
         onTap: (index) {
-          // Tambahkan fungsi navigasi untuk bottom bar di sini nanti
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, '/home');
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/create-campaign');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/my-campaigns');
+              break;
+          }
         },
         items: const [
           BottomNavigationBarItem(
@@ -110,57 +142,59 @@ class HomePage extends StatelessWidget {
 }
 
 class MainContent extends StatelessWidget {
-  const MainContent({super.key});
+  final List<Map<String, dynamic>> campaigns;
+
+  const MainContent({super.key, required this.campaigns});
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
-      children: const [
+      children: [
         // Spotlight Section
-        Text(
+        const Text(
           'Category',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         
         // Categories
-        CategoryRow(),
-        SizedBox(height: 20),
+        const CategoryRow(),
+        const SizedBox(height: 20),
         
         // Donation Balance - now using the updated widget with a parameter
-        DonationBalanceCard(balance: 200000), // You can change this value as needed
-        SizedBox(height: 30),
+        const DonationBalanceCard(balance: 200000), // You can change this value as needed
+        const SizedBox(height: 30),
         
         // Latest Campaign
-        Text(
+        const Text(
           'Latest Campaign',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         
         // Campaign Cards
-        LatestCampaigns(),
-        SizedBox(height: 30),
+        LatestCampaigns(campaigns: campaigns),
+        const SizedBox(height: 30),
         
         // Finished Campaigns
-        Text(
+        const Text(
           'Finished Campaign',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         
         // Finished Campaign Cards - horizontal layout
-        FinishedCampaignsHorizontal(),
+        const FinishedCampaignsHorizontal(),
       ],
     );
   }
@@ -311,34 +345,28 @@ class DonationBalanceCard extends StatelessWidget {
 }
 
 class LatestCampaigns extends StatelessWidget {
-  const LatestCampaigns({super.key});
+  final List<Map<String, dynamic>> campaigns;
+
+  const LatestCampaigns({super.key, required this.campaigns});
+
+  List<Map<String, dynamic>> get filteredSortedCampaigns {
+    final now = DateTime.now();
+    final dateFormat = DateFormat("MMMM d, y 'at' h:mm:ss a");
+    return campaigns
+      .where((campaign) {
+        final finishDate = DateTime.parse(campaign['finishDate']);
+        return finishDate.isAfter(now);
+      })
+      .toList()
+      ..sort((a, b) {
+        final createdAtA = dateFormat.parse(a['createdAt']);
+        final createdAtB = dateFormat.parse(b['createdAt']);
+        return createdAtB.compareTo(createdAtA);
+      });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final campaigns = [
-      {
-        'title': 'Bantu muslim indonesia ke mekkah.',
-        'organization': 'Bantubarengan',
-        'amount': 'Rp 24.000.000',
-        'icon': Icons.mosque,
-        'progress': 0.75,
-      },
-      {
-        'title': 'Bantu warga pelosok untuk makan siang.',
-        'organization': 'Social project',
-        'amount': 'Rp 50.000.000',
-        'icon': Icons.restaurant,
-        'progress': 0.6,
-      },
-      {
-        'title': 'Bantu anak bangsa tersenyum',
-        'organization': 'Anak bangsa',
-        'amount': 'Rp 90.000.000',
-        'icon': Icons.child_care,
-        'progress': 0.85,
-      },
-    ];
-
     return SizedBox(
       height: 300,
       child: ListView.builder(
@@ -652,5 +680,34 @@ class FinishedCampaignCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+
+
+Future<List<Map<String, dynamic>>> fetchCampaignsFromFirestore() async {
+  final firestore = FirebaseFirestore.instance;
+
+  try {
+    final snapshot = await firestore.collection('donations').get();
+
+    final campaigns = snapshot.docs.map((doc) {
+      final data = doc.data();
+
+      return {
+        'title': data['name'] ?? '',
+        'organization': data['organization'] ?? '',
+        'amount': 'Rp ${data['target']?.toString() ?? '0'}',
+        'category': data['category'] ?? '',
+        'progress': (data['progress'] ?? 0.0).toDouble(),
+        'icon': Icons.mosque,
+      };
+    }).toList();
+
+    print('success fetch ${campaigns}');
+    return campaigns;
+  } catch (e) {
+    print('Error fetching campaigns: $e');
+    return [];
   }
 }

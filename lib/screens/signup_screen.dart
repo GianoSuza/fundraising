@@ -309,6 +309,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'email': email,
         'password': password,
         'uid': uid,
+        'saldo': 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
 

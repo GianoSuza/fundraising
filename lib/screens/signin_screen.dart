@@ -173,6 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       await prefs.setString('userId', snapshot.docs.first.id);
                       await prefs.setString('userName', userData['name'] ?? '');
                       await prefs.setString('userEmail', userData['email']);
+                      await prefs.setInt('userSaldo', userData['saldo']);
                       await prefs.setBool('isLoggedIn', true);
 
                       // Navigate to homepage
