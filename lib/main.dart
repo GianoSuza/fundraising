@@ -16,17 +16,17 @@ import 'screens/home_screen.dart';
 import 'screens/donation_screen.dart';
 import 'screens/create_campaign.dart';
 import 'firebase_options.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform, // this is important
   );
-  // await Supabase.initialize(
-  //   url: 'https://weqcfrsxamtcrrtcwfds.supabase.co',
-  //   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndlcWNmcnN4YW10Y3JydGN3ZmRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5ODc4ODIsImV4cCI6MjA2MTU2Mzg4Mn0.4S4vNIKJ47O5OB-16xO2B0MYeVJudW_GB_Hc7w4cTJM',
-  // );
+  await Supabase.initialize(
+    url: 'https://ytsotxeekfpfibulsxnd.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0c290eGVla2ZwZmlidWxzeG5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzEwNTA5MDMsImV4cCI6MjA0NjYyNjkwM30.QOn5mmpYs2T2rp7lZ_4CneuDIX7axFSHYzb1oxanuUE',
+  );
   runApp(MyApp());
 }
 
@@ -69,13 +69,24 @@ class MyApp extends StatelessWidget {
         '/home': (context) => HomePage(),
         '/topup': (context) => TopupScreen(),
         '/payment-method': (context) => PaymentMethodScreen(),
-        '/payment-confirmation': (context) => PaymentConfirmationScreen(),
+        '/payment-confirmation': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return PaymentConfirmationScreen(
+            amount: args['amount'],
+            campaignName: args['campaignName'],
+            campaignId: args['campaignId'],
+            userId: args['userId'],
+          );
+        },
         '/transaction-history': (context) => TransactionHistoryScreen(),
         '/account': (context) => AccountScreen(),
         '/my-profile': (context) => MyProfileScreen(),
         '/edit-profile': (context) => EditProfileScreen(),
         '/change-password': (context) => ChangePasswordScreen(),
-        '/donation': (context) => DonationDetailsPage(),
+        '/donation': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return DonationDetailsPage(campaignId: args['campaignId']);
+        },
         '/create-campaign': (context) => CreateCampaignPage(),
       },
     );

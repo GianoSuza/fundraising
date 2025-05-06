@@ -1,29 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PaymentConfirmationScreen extends StatelessWidget {
+  final int amount;
+  final String campaignName;
+  final String campaignId;
+  final String userId;
+
+  const PaymentConfirmationScreen({
+    Key? key,
+    required this.amount,
+    required this.campaignName,
+    required this.campaignId,
+    required this.userId,
+  }) : super(key: key);
+
+  Future<void> _handleDone(BuildContext context) async {
+    try {
+      // Create transaction record
+      await FirebaseFirestore.instance
+          .collection('transactions')
+          .add({
+            'userId': userId,
+            'category': 'outcome',
+            'name': campaignName,
+            'amount': amount,
+            'date': FieldValue.serverTimestamp(),
+            'campaignId': campaignId,
+          });
+
+      // Update campaign's collected amount
+      await FirebaseFirestore.instance
+          .collection('donations')
+          .doc(campaignId)
+          .update({
+            'progress': FieldValue.increment(amount),
+          });
+
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      print('Error recording transaction: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF4ECDC4),
+      backgroundColor: const Color(0xFF7FDFD4),
       body: SafeArea(
         child: Column(
           children: [
             // Status Bar and App Bar
             Padding(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
                     },
-                    child: Icon(Icons.arrow_back, color: Colors.black),
+                    child: const Icon(Icons.arrow_back, color: Colors.black),
                   ),
-                  Expanded(
+                  const Expanded(
                     child: Center(
                       child: Text(
-                        'Topup',
+                        'Payment Confirmation',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -32,8 +77,7 @@ class PaymentConfirmationScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Empty SizedBox to balance the back button
-                  SizedBox(width: 24),
+                  const SizedBox(width: 24),
                 ],
               ),
             ),
@@ -41,7 +85,7 @@ class PaymentConfirmationScreen extends StatelessWidget {
             // Content
             Expanded(
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(30),
@@ -49,71 +93,66 @@ class PaymentConfirmationScreen extends StatelessWidget {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, 24, 24, 0),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         'Continue payment',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
                       // Amount
-                      Text(
+                      const Text(
                         'Amount',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        'Rp.200.000',
-                        style: TextStyle(
+                        'Rp ${_formatCurrency(amount)}',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
                       // QR Code
                       Container(
                         width: 200,
                         height: 200,
                         child: QrImageView(
-                          data: 'https://donation-app.com/payment/123456789',
+                          data: 'https://donation-app.com/payment/$campaignId/$amount',
                           version: QrVersions.auto,
                           size: 200.0,
                         ),
                       ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Please scan this QR for top up',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Please scan this QR for payment',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
 
-                      Spacer(),
+                      const Spacer(),
 
                       // Bottom Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/transaction-history',
-                            );
-                          },
+                          onPressed: () => _handleDone(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF4ECDC4),
+                            backgroundColor: const Color(0xFF7FDFD4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          child: Text(
-                            'Topup now',
+                          child: const Text(
+                            'Done',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -122,7 +161,7 @@ class PaymentConfirmationScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -132,5 +171,11 @@ class PaymentConfirmationScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatCurrency(int amount) {
+    RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    String Function(Match) mathFunc = (Match match) => '${match[1]}.';
+    return amount.toString().replaceAllMapped(reg, mathFunc);
   }
 }

@@ -4,7 +4,7 @@ import 'package:fundraising/screens/home_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CreateCampaignPage extends StatefulWidget {
   const CreateCampaignPage({super.key});
@@ -26,29 +26,29 @@ class _CreateCampaignPageState extends State<CreateCampaignPage> {
 
   final List<String> _categories = ['Pendidikan', 'Kesehatan', 'Lingkungan', 'Bencana Alam'];
 
-  // Future<List<String>> uploadImagesToSupabase(List<File> images) async {
-  //   final supabase = Supabase.instance.client;
-  //   final List<String> publicUrls = [];
+  Future<List<String>> uploadImagesToSupabase(List<File> images) async {
+    final supabase = Supabase.instance.client;
+    final List<String> publicUrls = [];
 
-  //   for (final image in images) {
-  //     final fileName = '${DateTime.now().millisecondsSinceEpoch}_${image.path.split('/').last}';
-  //     final storageResponse = await supabase.storage
-  //         .from('donation-images') // make sure the bucket exists
-  //         .upload('public/$fileName', image);
+    for (final image in images) {
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${image.path.split('/').last}';
+      final storageResponse = await supabase.storage
+          .from('donation-images') // make sure the bucket exists
+          .upload('public/$fileName', image);
 
-  //     if (storageResponse.isEmpty) {
-  //       throw Exception('Upload failed');
-  //     }
+      if (storageResponse.isEmpty) {
+        throw Exception('Upload failed');
+      }
 
-  //     final publicUrl = supabase.storage
-  //         .from('donation-images')
-  //         .getPublicUrl('public/$fileName');
+      final publicUrl = supabase.storage
+          .from('donation-images')
+          .getPublicUrl('public/$fileName');
 
-  //     publicUrls.add(publicUrl);
-  //   }
+      publicUrls.add(publicUrl);
+    }
 
-  //   return publicUrls;
-  // }
+    return publicUrls;
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -106,14 +106,14 @@ class _CreateCampaignPageState extends State<CreateCampaignPage> {
 
   void _submit() async {
     if (_formKey.currentState!.validate() && _selectedDate != null && _selectedCategory != null) {
-      // final uploadedImageUrls = await uploadImagesToSupabase(_images);
+      final uploadedImageUrls = await uploadImagesToSupabase(_images);
       await saveCampaignToFirestore(
         name: _nameController.text.trim(),
         target: _targetController.text.trim(),
         category: _selectedCategory!,
         description: _descriptionController.text.trim(),
         finishDate: _selectedDate!,
-        // imageUrls: uploadedImageUrls,
+        imageUrls: uploadedImageUrls,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -272,7 +272,7 @@ Future<void> saveCampaignToFirestore({
   required String category,
   required String description,
   required DateTime finishDate,
-  // required List<String> imageUrls,
+  required List<String> imageUrls,
 }) async {
   try {
     final prefs = await SharedPreferences.getInstance();
@@ -289,11 +289,12 @@ Future<void> saveCampaignToFirestore({
       'category': category,
       'description': description,
       'finishDate': Timestamp.fromDate(finishDate),
-      // 'imageUrls': imageUrls,
+      'imageUrls': imageUrls,
       'uid': userId,
       'createdAt': FieldValue.serverTimestamp(),
       'progress': 0.00,
       'organization': userName,
+      'vies': 0
     };
 
     await FirebaseFirestore.instance.collection('donations').add(donationData);

@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'donation_screen.dart';
+import 'package:fundraising/utils/formatter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -141,10 +144,30 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class MainContent extends StatelessWidget {
+class MainContent extends StatefulWidget {
   final List<Map<String, dynamic>> campaigns;
 
   const MainContent({super.key, required this.campaigns});
+
+  @override
+  State<MainContent> createState() => _MainContentState();
+}
+
+class _MainContentState extends State<MainContent> {
+  double userBalance = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserBalance();
+  }
+
+  Future<void> _loadUserBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userBalance = prefs.getDouble('userSaldo') ?? 0.0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,8 +188,8 @@ class MainContent extends StatelessWidget {
         const CategoryRow(),
         const SizedBox(height: 20),
         
-        // Donation Balance - now using the updated widget with a parameter
-        const DonationBalanceCard(balance: 200000), // You can change this value as needed
+        // Donation Balance
+        DonationBalanceCard(balance: userBalance),
         const SizedBox(height: 30),
         
         // Latest Campaign
@@ -180,7 +203,7 @@ class MainContent extends StatelessWidget {
         const SizedBox(height: 20),
         
         // Campaign Cards
-        LatestCampaigns(campaigns: campaigns),
+        LatestCampaigns(campaigns: widget.campaigns),
         const SizedBox(height: 30),
         
         // Finished Campaigns
@@ -256,7 +279,7 @@ class DonationBalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Format the balance with thousand separators
-    final formattedBalance = _formatCurrency(balance);
+    final formattedBalance = Formatter.formatCurrency(balance.toInt());
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -294,15 +317,6 @@ class DonationBalanceCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  // Format currency with thousand separators
-  String _formatCurrency(double amount) {
-    RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
-    String Function(Match) mathFunc = (Match match) => '${match[1]}.';
-    
-    // Convert to string and format with thousand separators
-    return amount.toStringAsFixed(0).replaceAllMapped(reg, mathFunc);
   }
 
   Widget _buildActionButton(IconData icon, String label, String route, BuildContext context) {
@@ -377,9 +391,10 @@ class LatestCampaigns extends StatelessWidget {
           return CampaignCard(
             title: campaign['title'] as String,
             organization: campaign['organization'] as String,
-            amount: campaign['amount'] as String,
+            target: campaign['target'] as int,
             icon: campaign['icon'] as IconData,
             progress: campaign['progress'] as double,
+            campaignId: campaign['id'] as String,
             margin: EdgeInsets.only(
               right: index < campaigns.length - 1 ? 16 : 0,
             ),
@@ -393,25 +408,28 @@ class LatestCampaigns extends StatelessWidget {
 class CampaignCard extends StatelessWidget {
   final String title;
   final String organization;
-  final String amount;
+  final int target;
   final IconData icon;
   final double progress;
   final EdgeInsets margin;
+  final String campaignId;
 
   const CampaignCard({
     super.key,
     required this.title,
     required this.organization,
-    required this.amount,
+    required this.target,
     required this.icon,
     required this.progress,
     this.margin = EdgeInsets.zero,
+    required this.campaignId,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 240,
+      height: 200,
       margin: margin,
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
@@ -421,8 +439,14 @@ class CampaignCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Fungsi untuk campaign card akan ditambahkan di sini nanti
-            Navigator.pushNamed(context, '/donation');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DonationDetailsPage(
+                  campaignId: campaignId,
+                ),
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(10),
           splashColor: const Color(0xFF4ECDC4).withOpacity(0.2),
@@ -484,19 +508,26 @@ class CampaignCard extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
-                        value: progress,
+                        value: (progress.toInt() ?? 0) / (target ?? 1),
                         backgroundColor: Colors.grey.shade200,
                         valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4ECDC4)),
                         minHeight: 10,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      'Collected $amount',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Collected: Rp ${Formatter.formatCurrency(progress.toInt())}',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -683,8 +714,6 @@ class FinishedCampaignCard extends StatelessWidget {
   }
 }
 
-
-
 Future<List<Map<String, dynamic>>> fetchCampaignsFromFirestore() async {
   final firestore = FirebaseFirestore.instance;
 
@@ -695,12 +724,16 @@ Future<List<Map<String, dynamic>>> fetchCampaignsFromFirestore() async {
       final data = doc.data();
 
       return {
+        'id': doc.id,
         'title': data['name'] ?? '',
         'organization': data['organization'] ?? '',
-        'amount': 'Rp ${data['target']?.toString() ?? '0'}',
+        'target': data['target'] ?? 0,
         'category': data['category'] ?? '',
-        'progress': (data['progress'] ?? 0.0).toDouble(),
-        'icon': Icons.mosque,
+        'progress': data['progress'] ?? 0,
+        'icon': _getCategoryIcon(data['category'] ?? ''),
+        'finishDate': data['finishDate'],
+        'createdAt': data['createdAt'],
+        'imageUrl': data['imageUrls']
       };
     }).toList();
 
@@ -709,5 +742,20 @@ Future<List<Map<String, dynamic>>> fetchCampaignsFromFirestore() async {
   } catch (e) {
     print('Error fetching campaigns: $e');
     return [];
+  }
+}
+
+IconData _getCategoryIcon(String category) {
+  switch (category) {
+    case 'Bencana Alam':
+      return Icons.flood;
+    case 'Kesehatan':
+      return Icons.medical_services;
+    case 'Pendidikan':
+      return Icons.school;
+    case 'Sosial':
+      return Icons.volunteer_activism;
+    default:
+      return Icons.category;
   }
 }

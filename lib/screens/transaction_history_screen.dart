@@ -1,74 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import '../models/transaction.dart' as model;
 
-class TransactionHistoryScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> transactions = [
-    {
-      'type': 'topup',
-      'title': 'Top up balance',
-      'date': DateTime(2024, 4, 5),
-      'amount': 50000,
-    },
-    {
-      'type': 'payment',
-      'title': 'Bencana Alam Aceh',
-      'date': DateTime(2024, 4, 4),
-      'amount': -25000,
-    },
-    {
-      'type': 'payment',
-      'title': 'Bangun Masjid',
-      'date': DateTime(2024, 4, 4),
-      'amount': -25000,
-    },
-    {
-      'type': 'topup',
-      'title': 'Top up balance',
-      'date': DateTime(2024, 4, 3),
-      'amount': 50000,
-    },
-    {
-      'type': 'payment',
-      'title': 'Bangun Masjid',
-      'date': DateTime(2024, 4, 1),
-      'amount': -10000,
-    },
-    {
-      'type': 'payment',
-      'title': 'Banjir Demak',
-      'date': DateTime(2024, 3, 20),
-      'amount': -50000,
-    },
-    {
-      'type': 'payment',
-      'title': 'Bantuan sosial',
-      'date': DateTime(2024, 3, 20),
-      'amount': -50000,
-    },
-    {
-      'type': 'topup',
-      'title': 'Top up balance',
-      'date': DateTime(2024, 3, 15),
-      'amount': 110000,
-    },
-  ];
+class TransactionHistoryScreen extends StatefulWidget {
+  @override
+  _TransactionHistoryScreenState createState() => _TransactionHistoryScreenState();
+}
+
+class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Group transactions by month
-    Map<String, List<Map<String, dynamic>>> groupedTransactions = {};
-
-    for (var transaction in transactions) {
-      final date = transaction['date'] as DateTime;
-      final monthYear = DateFormat('MMM yyyy').format(date);
-
-      if (!groupedTransactions.containsKey(monthYear)) {
-        groupedTransactions[monthYear] = [];
-      }
-
-      groupedTransactions[monthYear]!.add(transaction);
-    }
-
     return Scaffold(
       backgroundColor: Color(0xFF4ECDC4),
       body: SafeArea(
@@ -97,7 +48,6 @@ class TransactionHistoryScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Empty SizedBox to balance the back button
                   SizedBox(width: 24),
                 ],
               ),
@@ -130,6 +80,7 @@ class TransactionHistoryScreen extends StatelessWidget {
                             SizedBox(width: 8),
                             Expanded(
                               child: TextField(
+                                controller: _searchController,
                                 decoration: InputDecoration(
                                   hintText: 'Search transaction',
                                   border: InputBorder.none,
@@ -137,9 +88,23 @@ class TransactionHistoryScreen extends StatelessWidget {
                                     vertical: 12,
                                   ),
                                 ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _searchQuery = value.toLowerCase();
+                                  });
+                                },
                               ),
                             ),
-                            Icon(Icons.filter_list, color: Colors.grey),
+                            if (_searchQuery.isNotEmpty)
+                              IconButton(
+                                icon: Icon(Icons.clear, color: Colors.grey),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    _searchQuery = '';
+                                  });
+                                },
+                              ),
                           ],
                         ),
                       ),
@@ -147,32 +112,86 @@ class TransactionHistoryScreen extends StatelessWidget {
 
                       // Transaction List
                       Expanded(
-                        child: ListView.builder(
-                          itemCount: groupedTransactions.length,
-                          itemBuilder: (context, index) {
-                            final monthYear = groupedTransactions.keys
-                                .elementAt(index);
-                            final monthTransactions =
-                                groupedTransactions[monthYear]!;
+                        child: StreamBuilder<firestore.QuerySnapshot>(
+                          stream: firestore.FirebaseFirestore.instance
+                              .collection('transactions')
+                              .orderBy('date', descending: true)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Text('Error: ${snapshot.error}'),
+                              );
+                            }
 
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8),
-                                  child: Text(
-                                    index == 0 ? 'This month' : monthYear,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey[600],
-                                    ),
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+
+                            final transactions = snapshot.data!.docs
+                                .map((doc) => model.Transaction.fromFirestore(
+                                    doc.data() as Map<String, dynamic>, doc.id))
+                                .where((transaction) => _searchQuery.isEmpty ||
+                                    transaction.name.toLowerCase().contains(_searchQuery) ||
+                                    transaction.category.toLowerCase().contains(_searchQuery) ||
+                                    NumberFormat('#,###').format(transaction.amount).contains(_searchQuery))
+                                .toList();
+
+                            if (transactions.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  _searchQuery.isEmpty
+                                      ? 'No transactions found'
+                                      : 'No transactions match your search',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
                                   ),
                                 ),
-                                ...monthTransactions.map((transaction) {
-                                  return _buildTransactionItem(transaction);
-                                }).toList(),
-                              ],
+                              );
+                            }
+
+                            // Group transactions by month
+                            Map<String, List<model.Transaction>> groupedTransactions = {};
+
+                            for (var transaction in transactions) {
+                              final monthYear = DateFormat('MMM yyyy').format(transaction.date);
+
+                              if (!groupedTransactions.containsKey(monthYear)) {
+                                groupedTransactions[monthYear] = [];
+                              }
+
+                              groupedTransactions[monthYear]!.add(transaction);
+                            }
+
+                            return ListView.builder(
+                              itemCount: groupedTransactions.length,
+                              itemBuilder: (context, index) {
+                                final monthYear = groupedTransactions.keys.elementAt(index);
+                                final monthTransactions = groupedTransactions[monthYear]!;
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 8),
+                                      child: Text(
+                                        index == 0 ? 'This month' : monthYear,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                    ...monthTransactions.map((transaction) {
+                                      return _buildTransactionItem(transaction);
+                                    }).toList(),
+                                  ],
+                                );
+                              },
                             );
                           },
                         ),
@@ -188,11 +207,9 @@ class TransactionHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionItem(Map<String, dynamic> transaction) {
-    final isTopup = transaction['type'] == 'topup';
-    final amount = transaction['amount'] as int;
-    final date = transaction['date'] as DateTime;
-    final formattedDate = DateFormat('d MMM yyyy').format(date);
+  Widget _buildTransactionItem(model.Transaction transaction) {
+    final isIncome = transaction.category == 'income';
+    final formattedDate = DateFormat('d MMM yyyy').format(transaction.date);
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
@@ -203,11 +220,11 @@ class TransactionHistoryScreen extends StatelessWidget {
             height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isTopup ? Colors.green[50] : Colors.red[50],
+              color: isIncome ? Colors.green[50] : Colors.red[50],
             ),
             child: Icon(
-              isTopup ? Icons.add : Icons.remove,
-              color: isTopup ? Colors.green : Colors.red,
+              isIncome ? Icons.add : Icons.remove,
+              color: isIncome ? Colors.green : Colors.red,
               size: 16,
             ),
           ),
@@ -217,7 +234,7 @@ class TransactionHistoryScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction['title'],
+                  transaction.name,
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 Text(
@@ -228,13 +245,13 @@ class TransactionHistoryScreen extends StatelessWidget {
             ),
           ),
           Text(
-            isTopup
-                ? '+Rp ${NumberFormat('#,###').format(amount)}'
-                : '-Rp ${NumberFormat('#,###').format(amount.abs())}',
+            isIncome
+                ? '+Rp ${NumberFormat('#,###').format(transaction.amount)}'
+                : '-Rp ${NumberFormat('#,###').format(transaction.amount.abs())}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: isTopup ? Colors.green : Colors.red,
+              color: isIncome ? Colors.green : Colors.red,
             ),
           ),
         ],
