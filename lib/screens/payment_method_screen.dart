@@ -1,32 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fundraising/screens/payment_confirmation_screen.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
+  final int amount;
+
+  const PaymentMethodScreen({
+    Key? key,
+    required this.amount,
+  }) : super(key: key);
+
   @override
   _PaymentMethodScreenState createState() => _PaymentMethodScreenState();
 }
 
 class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   String? selectedMethod = 'qris';
+  String? userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userId = prefs.getString('userId');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF4ECDC4),
+      backgroundColor: const Color(0xFF4ECDC4),
       body: SafeArea(
         child: Column(
           children: [
             // Status Bar and App Bar
             Padding(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
                     },
-                    child: Icon(Icons.arrow_back, color: Colors.black),
+                    child: const Icon(Icons.arrow_back, color: Colors.black),
                   ),
-                  Expanded(
+                  const Expanded(
                     child: Center(
                       child: Text(
                         'Topup',
@@ -38,8 +61,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       ),
                     ),
                   ),
-                  // Empty SizedBox to balance the back button
-                  SizedBox(width: 24),
+                  const SizedBox(width: 24),
                 ],
               ),
             ),
@@ -47,7 +69,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             // Content
             Expanded(
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(30),
@@ -55,18 +77,18 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, 24, 24, 0),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Select Payment Method',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Payment Methods
                       _buildPaymentMethodItem(
@@ -83,7 +105,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         isSelected: true,
                       ),
 
-                      Spacer(),
+                      const Spacer(),
 
                       // Bottom Button
                       SizedBox(
@@ -91,18 +113,26 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         height: 50,
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/payment-confirmation',
-                            );
+                            if (userId != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PaymentConfirmationScreen(
+                                    amount: widget.amount,
+                                    userId: userId!,
+                                    isTopup: true,
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF4ECDC4),
+                            backgroundColor: const Color(0xFF4ECDC4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Topup now',
                             style: TextStyle(
                               fontSize: 16,
@@ -112,7 +142,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -137,8 +167,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         });
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 16),
-        padding: EdgeInsets.symmetric(vertical: 12),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
         ),
@@ -161,35 +191,33 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 ),
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Text(
               name,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
-            Spacer(),
+            const Spacer(),
             Container(
               width: 24,
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color:
-                      id == selectedMethod
-                          ? Color(0xFF4ECDC4)
-                          : Colors.grey[300]!,
+                  color: id == selectedMethod
+                      ? const Color(0xFF4ECDC4)
+                      : Colors.grey[300]!,
                   width: 2,
                 ),
               ),
-              child:
-                  id == selectedMethod
-                      ? Container(
-                        margin: EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFF4ECDC4),
-                        ),
-                      )
-                      : null,
+              child: id == selectedMethod
+                  ? Container(
+                      margin: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF4ECDC4),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),

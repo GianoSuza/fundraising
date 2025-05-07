@@ -1,44 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PaymentConfirmationScreen extends StatelessWidget {
   final int amount;
-  final String campaignName;
-  final String campaignId;
+  final String? campaignName;
+  final String? campaignId;
   final String userId;
+  final bool isTopup;
 
   const PaymentConfirmationScreen({
     Key? key,
     required this.amount,
-    required this.campaignName,
-    required this.campaignId,
+    this.campaignName,
+    this.campaignId,
     required this.userId,
+    this.isTopup = false,
   }) : super(key: key);
 
   Future<void> _handleDone(BuildContext context) async {
     try {
-      // Create transaction record
-      await FirebaseFirestore.instance
-          .collection('transactions')
-          .add({
-            'userId': userId,
-            'category': 'outcome',
-            'name': campaignName,
-            'amount': amount,
-            'date': FieldValue.serverTimestamp(),
-            'campaignId': campaignId,
-          });
+      if (isTopup) {
+        // Handle top-up transaction
+        await FirebaseFirestore.instance
+            .collection('transactions')
+            .add({
+              'userId': userId,
+              'category': 'income',
+              'name': 'Top Up',
+              'amount': amount,
+              'date': FieldValue.serverTimestamp(),
+            });
 
-      // Update campaign's collected amount
-      await FirebaseFirestore.instance
-          .collection('donations')
-          .doc(campaignId)
-          .update({
-            'progress': FieldValue.increment(amount),
-          });
+        // Update user's balance
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .update({
+              'saldo': FieldValue.increment(amount),
+            });
 
-      Navigator.pushReplacementNamed(context, '/home');
+        // Update local SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final currentSaldo = prefs.getInt('userSaldo') ?? 0;
+        await prefs.setInt('userSaldo', currentSaldo + amount);
+
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        // Handle donation transaction
+        await FirebaseFirestore.instance
+            .collection('transactions')
+            .add({
+              'userId': userId,
+              'category': 'outcome',
+              'name': campaignName,
+              'amount': amount,
+              'date': FieldValue.serverTimestamp(),
+              'campaignId': campaignId,
+            });
+
+        // Update campaign's collected amount
+        await FirebaseFirestore.instance
+            .collection('donations')
+            .doc(campaignId)
+            .update({
+              'progress': FieldValue.increment(amount),
+            });
+
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } catch (e) {
       print('Error recording transaction: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,9 +128,9 @@ class PaymentConfirmationScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Continue payment',
-                        style: TextStyle(
+                      Text(
+                        isTopup ? 'Top Up Confirmation' : 'Continue payment',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -126,7 +157,9 @@ class PaymentConfirmationScreen extends StatelessWidget {
                         width: 200,
                         height: 200,
                         child: QrImageView(
-                          data: 'https://donation-app.com/payment/$campaignId/$amount',
+                          data: isTopup 
+                              ? 'https://donation-app.com/topup/$userId/$amount'
+                              : 'https://donation-app.com/payment/$campaignId/$amount',
                           version: QrVersions.auto,
                           size: 200.0,
                         ),

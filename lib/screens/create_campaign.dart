@@ -24,7 +24,7 @@ class _CreateCampaignPageState extends State<CreateCampaignPage> {
   String? _selectedCategory;
   final List<File> _images = [];
 
-  final List<String> _categories = ['Pendidikan', 'Kesehatan', 'Lingkungan', 'Bencana Alam'];
+  final List<String> _categories = ['Dhuafa', 'Kesehatan', 'Lingkungan', 'Bencana Alam'];
 
   Future<List<String>> uploadImagesToSupabase(List<File> images) async {
     final supabase = Supabase.instance.client;

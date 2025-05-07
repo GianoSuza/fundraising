@@ -15,6 +15,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> campaigns = [];
+  String searchQuery = '';
+  String? selectedCategory;
 
   @override
   void initState() {
@@ -26,6 +28,35 @@ class _HomePageState extends State<HomePage> {
     final fetched = await fetchCampaignsFromFirestore();
     setState(() {
       campaigns = fetched;
+    });
+  }
+
+  List<Map<String, dynamic>> get filteredCampaigns {
+    var filtered = campaigns;
+    
+    // Apply category filter
+    if (selectedCategory != null) {
+      filtered = filtered.where((campaign) {
+        return campaign['category'] == selectedCategory;
+      }).toList();
+    }
+    
+    // Apply search filter
+    if (searchQuery.isNotEmpty) {
+      filtered = filtered.where((campaign) {
+        final title = campaign['title'].toString().toLowerCase();
+        final organization = campaign['organization'].toString().toLowerCase();
+        final query = searchQuery.toLowerCase();
+        return title.contains(query) || organization.contains(query);
+      }).toList();
+    }
+    
+    return filtered;
+  }
+
+  void setCategory(String? category) {
+    setState(() {
+      selectedCategory = category;
     });
   }
 
@@ -50,7 +81,7 @@ class _HomePageState extends State<HomePage> {
                     topRight: Radius.circular(30),
                   ),
                 ),
-                child: MainContent(campaigns: campaigns),
+                child: MainContent(campaigns: filteredCampaigns),
               ),
             ),
           ],
@@ -104,8 +135,13 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(25),
               ),
-              child: const TextField(
-                decoration: InputDecoration(
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
+                },
+                decoration: const InputDecoration(
                   hintText: 'Help others ...',
                   prefixIcon: Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
@@ -118,7 +154,6 @@ class _HomePageState extends State<HomePage> {
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-                // Fungsi untuk tombol profile akan ditambahkan di sini nanti
                 Navigator.pushNamed(context, '/account');
               },
               borderRadius: BorderRadius.circular(25),
@@ -185,7 +220,12 @@ class _MainContentState extends State<MainContent> {
         const SizedBox(height: 20),
         
         // Categories
-        const CategoryRow(),
+        CategoryRow(
+          selectedCategory: (context.findAncestorStateOfType<_HomePageState>())?.selectedCategory,
+          onCategorySelected: (category) {
+            (context.findAncestorStateOfType<_HomePageState>())?.setCategory(category);
+          },
+        ),
         const SizedBox(height: 20),
         
         // Donation Balance
@@ -217,53 +257,108 @@ class _MainContentState extends State<MainContent> {
         const SizedBox(height: 20),
         
         // Finished Campaign Cards - horizontal layout
-        const FinishedCampaignsHorizontal(),
+        FinishedCampaignsHorizontal(campaigns: widget.campaigns),
       ],
     );
   }
 }
 
 class CategoryRow extends StatelessWidget {
-  const CategoryRow({super.key});
+  final String? selectedCategory;
+  final Function(String?) onCategorySelected;
+
+  const CategoryRow({
+    super.key,
+    this.selectedCategory,
+    required this.onCategorySelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+    return Column(
       children: [
-        _buildCategoryIcon(Icons.home_work, Colors.grey),
-        _buildCategoryIcon(Icons.medical_services, Colors.red),
-        _buildCategoryIcon(Icons.local_fire_department, Colors.orange),
-        _buildCategoryIcon(Icons.volunteer_activism, Colors.brown),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildCategoryItem(
+              'Lingkungan',
+              Icons.eco,
+              Colors.green,
+            ),
+            _buildCategoryItem(
+              'Kesehatan',
+              Icons.medical_services,
+              Colors.red,
+            ),
+            _buildCategoryItem(
+              'Bencana Alam',
+              Icons.flood,
+              Colors.orange,
+            ),
+            _buildCategoryItem(
+              'Dhuafa',
+              Icons.volunteer_activism,
+              Colors.brown,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (selectedCategory != null)
+          TextButton(
+            onPressed: () => onCategorySelected(null),
+            child: const Text(
+              'Clear Filter',
+              style: TextStyle(
+                color: Color(0xFF4ECDC4),
+                fontSize: 14,
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildCategoryIcon(IconData icon, Color color) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          // Fungsi untuk kategori akan ditambahkan di sini nanti
-        },
-        borderRadius: BorderRadius.circular(30), // Untuk efek splash yang bulat
-        splashColor: const Color(0xFF4ECDC4).withOpacity(0.3),
-        highlightColor: const Color(0xFF4ECDC4).withOpacity(0.1),
-        child: Ink(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade300),
-            color: Colors.white,
-          ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 30,
+  Widget _buildCategoryItem(String category, IconData icon, Color color) {
+    final isSelected = selectedCategory == category;
+    
+    return Column(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => onCategorySelected(category),
+            borderRadius: BorderRadius.circular(30),
+            splashColor: const Color(0xFF4ECDC4).withOpacity(0.3),
+            highlightColor: const Color(0xFF4ECDC4).withOpacity(0.1),
+            child: Ink(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF4ECDC4) : Colors.grey.shade300,
+                  width: isSelected ? 2 : 1,
+                ),
+                color: isSelected ? const Color(0xFF4ECDC4).withOpacity(0.1) : Colors.white,
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? const Color(0xFF4ECDC4) : color,
+                size: 30,
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          category,
+          style: TextStyle(
+            fontSize: 12,
+            color: isSelected ? const Color(0xFF4ECDC4) : Colors.grey.shade600,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -365,41 +460,240 @@ class LatestCampaigns extends StatelessWidget {
 
   List<Map<String, dynamic>> get filteredSortedCampaigns {
     final now = DateTime.now();
-    final dateFormat = DateFormat("MMMM d, y 'at' h:mm:ss a");
     return campaigns
       .where((campaign) {
-        final finishDate = DateTime.parse(campaign['finishDate']);
+        final finishDate = (campaign['finishDate'] as Timestamp).toDate();
         return finishDate.isAfter(now);
       })
       .toList()
       ..sort((a, b) {
-        final createdAtA = dateFormat.parse(a['createdAt']);
-        final createdAtB = dateFormat.parse(b['createdAt']);
+        final createdAtA = (a['createdAt'] as Timestamp).toDate();
+        final createdAtB = (b['createdAt'] as Timestamp).toDate();
         return createdAtB.compareTo(createdAtA);
       });
   }
 
   @override
   Widget build(BuildContext context) {
+    final filteredCampaigns = filteredSortedCampaigns;
+    
     return SizedBox(
       height: 300,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: campaigns.length,
-        itemBuilder: (context, index) {
-          final campaign = campaigns[index];
-          return CampaignCard(
-            title: campaign['title'] as String,
-            organization: campaign['organization'] as String,
-            target: campaign['target'] as int,
-            icon: campaign['icon'] as IconData,
-            progress: campaign['progress'] as double,
-            campaignId: campaign['id'] as String,
-            margin: EdgeInsets.only(
-              right: index < campaigns.length - 1 ? 16 : 0,
+      child: filteredCampaigns.isEmpty
+          ? const Center(
+              child: Text(
+                'No active campaigns',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            )
+          : ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: filteredCampaigns.length,
+              itemBuilder: (context, index) {
+                final campaign = filteredCampaigns[index];
+                return CampaignCard(
+                  title: campaign['title'] as String,
+                  organization: campaign['organization'] as String,
+                  target: campaign['target'] as int,
+                  icon: campaign['icon'] as IconData,
+                  progress: campaign['progress'] as double,
+                  campaignId: campaign['id'] as String,
+                  imageUrls: campaign['imageUrls'] as List<dynamic>?,
+                  margin: EdgeInsets.only(
+                    right: index < filteredCampaigns.length - 1 ? 16 : 0,
+                  ),
+                );
+              },
             ),
-          );
-        },
+    );
+  }
+}
+
+class FinishedCampaignsHorizontal extends StatelessWidget {
+  final List<Map<String, dynamic>> campaigns;
+
+  const FinishedCampaignsHorizontal({
+    super.key,
+    required this.campaigns,
+  });
+
+  List<Map<String, dynamic>> get filteredSortedCampaigns {
+    final now = DateTime.now();
+    return campaigns
+      .where((campaign) {
+        final finishDate = (campaign['finishDate'] as Timestamp).toDate();
+        return finishDate.isBefore(now);
+      })
+      .toList()
+      ..sort((a, b) {
+        final finishDateA = (a['finishDate'] as Timestamp).toDate();
+        final finishDateB = (b['finishDate'] as Timestamp).toDate();
+        return finishDateB.compareTo(finishDateA);
+      });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredCampaigns = filteredSortedCampaigns;
+
+    return SizedBox(
+      height: 144,
+      child: filteredCampaigns.isEmpty
+          ? const Center(
+              child: Text(
+                'No finished campaigns',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            )
+          : ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: filteredCampaigns.length,
+              itemBuilder: (context, index) {
+                final campaign = filteredCampaigns[index];
+                return FinishedCampaignCard(
+                  campaign: campaign,
+                  margin: EdgeInsets.only(
+                    right: index < filteredCampaigns.length - 1 ? 16 : 0,
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class FinishedCampaignCard extends StatelessWidget {
+  final Map<String, dynamic> campaign;
+  final EdgeInsets margin;
+
+  const FinishedCampaignCard({
+    super.key,
+    required this.campaign,
+    this.margin = EdgeInsets.zero,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final finishDate = (campaign['finishDate'] as Timestamp).toDate();
+    final formattedDate = DateFormat('dd MMM yyyy').format(finishDate);
+    final progress = campaign['progress'] as double;
+    final formattedProgress = Formatter.formatCurrency(progress.toInt());
+
+    return Container(
+      width: 300,
+      margin: margin,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DonationDetailsPage(
+                  campaignId: campaign['id'] as String,
+                ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(10),
+          splashColor: const Color(0xFF4ECDC4).withOpacity(0.2),
+          highlightColor: const Color(0xFF4ECDC4).withOpacity(0.1),
+          child: Row(
+            children: [
+              // Image or placeholder
+              Container(
+                width: 100,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    bottomLeft: Radius.circular(10),
+                  ),
+                ),
+                child: campaign['imageUrls'] != null && (campaign['imageUrls'] as List).isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(10),
+                          bottomLeft: Radius.circular(10),
+                        ),
+                        child: Image.network(
+                          campaign['imageUrls'][0],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(
+                                campaign['icon'] as IconData,
+                                size: 40,
+                                color: Colors.grey.shade500,
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          campaign['icon'] as IconData,
+                          size: 40,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        campaign['title'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Text(
+                            formattedDate,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Total terkumpul:\nRp $formattedProgress',
+                        style: const TextStyle(
+                          color: Color(0xFF4ECDC4),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -413,6 +707,7 @@ class CampaignCard extends StatelessWidget {
   final double progress;
   final EdgeInsets margin;
   final String campaignId;
+  final List<dynamic>? imageUrls;
 
   const CampaignCard({
     super.key,
@@ -423,6 +718,7 @@ class CampaignCard extends StatelessWidget {
     required this.progress,
     this.margin = EdgeInsets.zero,
     required this.campaignId,
+    this.imageUrls,
   });
 
   @override
@@ -464,13 +760,34 @@ class CampaignCard extends StatelessWidget {
                     topRight: Radius.circular(10),
                   ),
                 ),
-                child: Center(
-                  child: Icon(
-                    icon,
-                    size: 50,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
+                child: imageUrls != null && imageUrls!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(10),
+                          topRight: Radius.circular(10),
+                        ),
+                        child: Image.network(
+                          imageUrls![0],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(
+                                icon,
+                                size: 50,
+                                color: Colors.grey.shade500,
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          icon,
+                          size: 50,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
               ),
               Padding(
                 padding: const EdgeInsets.all(12),
@@ -587,133 +904,6 @@ class FinishedCampaignDataSource {
   }
 }
 
-// Updated horizontal layout for finished campaigns
-class FinishedCampaignsHorizontal extends StatelessWidget {
-  const FinishedCampaignsHorizontal({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Get finished campaigns from separate data source
-    final campaigns = FinishedCampaignDataSource.getFinishedCampaigns();
-
-    return SizedBox(
-      height: 144, // Height for horizontal cards
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: campaigns.length,
-        itemBuilder: (context, index) {
-          final campaign = campaigns[index];
-          return FinishedCampaignCard(
-            campaign: campaign,
-            margin: EdgeInsets.only(
-              right: index < campaigns.length - 1 ? 16 : 0,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class FinishedCampaignCard extends StatelessWidget {
-  final FinishedCampaignModel campaign;
-  final EdgeInsets margin;
-
-  const FinishedCampaignCard({
-    super.key,
-    required this.campaign,
-    this.margin = EdgeInsets.zero,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 300, // Width for horizontal card
-      margin: margin,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Fungsi untuk finished campaign card akan ditambahkan di sini nanti
-            Navigator.pushNamed(context, '/donation');
-          },
-          borderRadius: BorderRadius.circular(10),
-          splashColor: const Color(0xFF4ECDC4).withOpacity(0.2),
-          highlightColor: const Color(0xFF4ECDC4).withOpacity(0.1),
-          child: Row(
-            children: [
-              // Image placeholder
-              Container(
-                width: 100,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    bottomLeft: Radius.circular(10),
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    campaign.icon,
-                    size: 40,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        campaign.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            campaign.date,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Total terkumpul:\n${campaign.totalDonation}',
-                        style: const TextStyle(
-                          color: Color(0xFF4ECDC4),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 Future<List<Map<String, dynamic>>> fetchCampaignsFromFirestore() async {
   final firestore = FirebaseFirestore.instance;
 
@@ -733,7 +923,7 @@ Future<List<Map<String, dynamic>>> fetchCampaignsFromFirestore() async {
         'icon': _getCategoryIcon(data['category'] ?? ''),
         'finishDate': data['finishDate'],
         'createdAt': data['createdAt'],
-        'imageUrl': data['imageUrls']
+        'imageUrls': data['imageUrls']
       };
     }).toList();
 

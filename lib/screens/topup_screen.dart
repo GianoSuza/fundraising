@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fundraising/screens/payment_method_screen.dart';
 
 class TopupScreen extends StatefulWidget {
   @override
@@ -38,25 +39,30 @@ class _TopupScreenState extends State<TopupScreen> {
     });
   }
 
+  int _parseAmount(String amountStr) {
+    // Remove 'Rp' and dots, then parse to integer
+    return int.parse(amountStr.replaceAll('Rp', '').replaceAll('.', '').trim());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF66D2CE),
+      backgroundColor: const Color(0xFF66D2CE),
       body: SafeArea(
         child: Column(
           children: [
             // Status Bar and App Bar
             Padding(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
                     },
-                    child: Icon(Icons.arrow_back, color: Colors.black),
+                    child: const Icon(Icons.arrow_back, color: Colors.black),
                   ),
-                  Expanded(
+                  const Expanded(
                     child: Center(
                       child: Text(
                         'Topup',
@@ -68,8 +74,7 @@ class _TopupScreenState extends State<TopupScreen> {
                       ),
                     ),
                   ),
-                  // Empty SizedBox to balance the back button
-                  SizedBox(width: 24),
+                  const SizedBox(width: 24),
                 ],
               ),
             ),
@@ -77,7 +82,7 @@ class _TopupScreenState extends State<TopupScreen> {
             // Content
             Expanded(
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(30),
@@ -85,32 +90,32 @@ class _TopupScreenState extends State<TopupScreen> {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, 24, 24, 0),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Add',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Amount Input
                       Container(
-                        padding: EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF0F2F5),
+                          color: const Color(0xFFF0F2F5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [
-                            Text(
+                            const Text(
                               'Rp',
                               style: TextStyle(
                                 fontSize: 24,
@@ -122,15 +127,13 @@ class _TopupScreenState extends State<TopupScreen> {
                               child: TextField(
                                 controller: _amountController,
                                 focusNode: _focusNode,
-                                keyboardType:
-                                    TextInputType
-                                        .number, // Gunakan keyboard numerik sistem
+                                keyboardType: TextInputType.number,
                                 textAlign: TextAlign.right,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.zero,
                                 ),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -140,7 +143,7 @@ class _TopupScreenState extends State<TopupScreen> {
                         ),
                       ),
 
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Quick Amount Buttons - First Row
                       Row(
@@ -151,7 +154,7 @@ class _TopupScreenState extends State<TopupScreen> {
                           _buildAmountButton('100.000'),
                         ],
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
                       // Quick Amount Buttons - Second Row
                       Row(
@@ -163,7 +166,7 @@ class _TopupScreenState extends State<TopupScreen> {
                         ],
                       ),
 
-                      Spacer(),
+                      const Spacer(),
 
                       // Next Button
                       SizedBox(
@@ -171,15 +174,23 @@ class _TopupScreenState extends State<TopupScreen> {
                         height: 50,
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.pushNamed(context, '/payment-method');
+                            final amount = _parseAmount(_amountController.text);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PaymentMethodScreen(
+                                  amount: amount,
+                                ),
+                              ),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF4ECDC4),
+                            backgroundColor: const Color(0xFF4ECDC4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Continue',
                             style: TextStyle(
                               fontSize: 16,
@@ -189,7 +200,7 @@ class _TopupScreenState extends State<TopupScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -206,7 +217,7 @@ class _TopupScreenState extends State<TopupScreen> {
       onTap: () => _setAmount(amount),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.28,
-        padding: EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: Colors.grey[300]!),
@@ -215,7 +226,7 @@ class _TopupScreenState extends State<TopupScreen> {
         child: Text(
           'Rp $amount',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ),
     );

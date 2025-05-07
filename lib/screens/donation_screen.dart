@@ -85,7 +85,10 @@ class _DonationDetailsPageState extends State<DonationDetailsPage> {
     // Calculate days left
     final finishDate = (campaignData!['finishDate'] as Timestamp).toDate();
     final now = DateTime.now();
-    final daysLeft = finishDate.difference(now).inDays;
+    final isFinished = now.isAfter(finishDate);
+    final daysLeft = isFinished 
+        ? now.difference(finishDate).inDays 
+        : finishDate.difference(now).inDays;
 
     // Get image URLs
     final List<String> imageUrls = List<String>.from(campaignData!['imageUrls'] ?? []);
@@ -331,7 +334,9 @@ class _DonationDetailsPageState extends State<DonationDetailsPage> {
                                       ),
                                     ),
                                     Text(
-                                      '$daysLeft days to go',
+                                      isFinished 
+                                          ? '$daysLeft days ago'
+                                          : '$daysLeft days to go',
                                       style: const TextStyle(
                                         color: Colors.grey,
                                         fontSize: 12,
@@ -436,46 +441,47 @@ class _DonationDetailsPageState extends State<DonationDetailsPage> {
             ),
             
             // Fixed Donate Button at the bottom
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: Container(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DonationAmountPage(
-                              campaignId: widget.campaignId,
-                              campaignData: campaignData!,
+            if (!isFinished)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: Container(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DonationAmountPage(
+                                campaignId: widget.campaignId,
+                                campaignData: campaignData!,
+                              ),
                             ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7FDFD4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7FDFD4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                      child: const Text(
-                        'Donate Now',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                        child: const Text(
+                          'Donate Now',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -632,6 +638,8 @@ class _DonationAmountPageState extends State<DonationAmountPage> {
             .update({
               'saldo': currentSaldo - amount,
             });
+        
+        await prefs.setInt('userSaldo', currentSaldo - amount);
 
         // Create transaction record
         await FirebaseFirestore.instance

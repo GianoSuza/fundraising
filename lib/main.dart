@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:fundraising/screens/my_campaigns_screen.dart';
 import 'package:fundraising/screens/onboard.dart';
 import 'screens/topup_screen.dart';
 import 'screens/payment_method_screen.dart';
@@ -68,7 +69,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => SignUpScreen(),
         '/home': (context) => HomePage(),
         '/topup': (context) => TopupScreen(),
-        '/payment-method': (context) => PaymentMethodScreen(),
+        '/payment-method': (context) => PaymentMethodScreen(amount: 0,),
         '/payment-confirmation': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return PaymentConfirmationScreen(
@@ -88,6 +89,7 @@ class MyApp extends StatelessWidget {
           return DonationDetailsPage(campaignId: args['campaignId']);
         },
         '/create-campaign': (context) => CreateCampaignPage(),
+        '/my-campaigns': (context) => const MyCampaignsScreen(),
       },
     );
   }
