@@ -154,7 +154,7 @@ class MainContent extends StatefulWidget {
 }
 
 class _MainContentState extends State<MainContent> {
-  double userBalance = 0.0;
+  int userBalance = 0;
 
   @override
   void initState() {
@@ -165,7 +165,7 @@ class _MainContentState extends State<MainContent> {
   Future<void> _loadUserBalance() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      userBalance = prefs.getDouble('userSaldo') ?? 0.0;
+      userBalance = prefs.getInt('userSaldo') ?? 0;
     });
   }
 
@@ -269,7 +269,7 @@ class CategoryRow extends StatelessWidget {
 }
 
 class DonationBalanceCard extends StatelessWidget {
-  final double balance;
+  final int balance;
   
   const DonationBalanceCard({
     super.key, 
@@ -279,7 +279,7 @@ class DonationBalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Format the balance with thousand separators
-    final formattedBalance = Formatter.formatCurrency(balance.toInt());
+    final formattedBalance = Formatter.formatCurrency(balance);
     
     return Container(
       padding: const EdgeInsets.all(16),

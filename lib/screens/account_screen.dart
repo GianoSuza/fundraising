@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -7,7 +8,40 @@ class AccountScreen extends StatefulWidget {
   AccountScreenState createState() => AccountScreenState();
 }
 
-class AccountScreenState extends State<AccountScreen> {
+class AccountScreenState extends State<AccountScreen> with WidgetsBindingObserver {
+  String userName = '';
+  String userEmail = '';
+  String userProfilePic = 'https://placeholder.com/150x150';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadUserData();
+    }
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userName = prefs.getString('userName') ?? '';
+      userEmail = prefs.getString('userEmail') ?? '';
+      userProfilePic = prefs.getString('userProfilePic') ?? 'https://placeholder.com/150x150';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,11 +77,9 @@ class AccountScreenState extends State<AccountScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Profile Picture
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 35,
-                    backgroundImage: NetworkImage(
-                      'https://placeholder.com/150x150',
-                    ),
+                    backgroundImage: NetworkImage(userProfilePic),
                   ),
                   const SizedBox(width: 16),
                   // Profile Info and Buttons
@@ -56,17 +88,17 @@ class AccountScreenState extends State<AccountScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          'Mohammad Salah',
-                          style: TextStyle(
+                        Text(
+                          userName.isNotEmpty ? userName : 'No Name',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
                           ),
                         ),
-                        const Text(
-                          'msalah@gmail.com',
-                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                        Text(
+                          userEmail.isNotEmpty ? userEmail : 'No Email',
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -74,9 +106,7 @@ class AccountScreenState extends State<AccountScreen> {
                             SizedBox(
                               height: 32,
                               child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/edit-profile');
-                                },
+                                onPressed: _handleEditProfile,
                                 icon: const Icon(
                                   Icons.person_outline,
                                   size: 14,
@@ -100,7 +130,9 @@ class AccountScreenState extends State<AccountScreen> {
                             SizedBox(
                               height: 32,
                               child: ElevatedButton.icon(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/topup');
+                                },
                                 icon: const Icon(Icons.wallet, size: 14),
                                 label: const Text(
                                   'Top up',
@@ -135,6 +167,7 @@ class AccountScreenState extends State<AccountScreen> {
                 children: [
                   // _buildMenuItem(Icons.favorite_border, 'My donation'),
                   _buildMenuItem(Icons.lock_outline, 'Change password'),
+                  _buildMenuItem(Icons.logout, 'Logout'),
                 ],
               ),
             ),
@@ -184,7 +217,53 @@ class AccountScreenState extends State<AccountScreen> {
         color: Colors.black54,
         size: 20,
       ),
-      onTap: () {},
+      onTap: () async {
+        if (title == 'Logout') {
+          // Show confirmation dialog
+          final shouldLogout = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Logout'),
+              content: const Text('Are you sure you want to logout?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Logout'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldLogout == true) {
+            // Clear all SharedPreferences data
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.clear();
+
+            // Navigate to signin page and remove all previous routes
+            if (mounted) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/signin',
+                (route) => false,
+              );
+            }
+          }
+        } else if (title == 'Change password') {
+          // Navigate to change password screen
+          Navigator.pushNamed(context, '/change-password');
+        }
+      },
     );
+  }
+
+  // Add this method to handle profile edit button tap
+  void _handleEditProfile() async {
+    await Navigator.pushNamed(context, '/edit-profile');
+    // Reload user data after returning from edit profile
+    _loadUserData();
   }
 }

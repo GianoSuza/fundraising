@@ -171,7 +171,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Save user data in SharedPreferences
                       SharedPreferences prefs = await SharedPreferences.getInstance();
                       await prefs.setString('userId', snapshot.docs.first.id);
-                      await prefs.setString('userName', userData['name'] ?? '');
+                      await prefs.setString('userName', userData['name']);
+                      await prefs.setString('userPassword', userData['password']);
                       await prefs.setString('userEmail', userData['email']);
                       await prefs.setInt('userSaldo', userData['saldo']);
                       await prefs.setBool('isLoggedIn', true);
