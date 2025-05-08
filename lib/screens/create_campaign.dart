@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class CreateCampaignPage extends StatefulWidget {
   const CreateCampaignPage({super.key});
@@ -19,10 +21,12 @@ class _CreateCampaignPageState extends State<CreateCampaignPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _targetController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _promptController = TextEditingController();
 
   DateTime? _selectedDate;
   String? _selectedCategory;
   final List<File> _images = [];
+  bool _isGeneratingDescription = false;
 
   final List<String> _categories = ['Dhuafa', 'Kesehatan', 'Lingkungan', 'Bencana Alam'];
 
@@ -104,6 +108,105 @@ class _CreateCampaignPageState extends State<CreateCampaignPage> {
     );
   }
 
+  Future<String> _generateDescription(String prompt) async {
+    try {
+      const apiKey = 'AIzaSyDkBpM0BNslRzNzPYPgNyu-xmqzd1tIpN4';
+      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+      final response = await http.post(
+        Uri.parse('$apiUrl?key=$apiKey'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {
+                  'text': 'You are a helpful assistant that generates compelling campaign descriptions for fundraising purposes. '
+                      'The descriptions should be engaging, emotional, and persuasive. '
+                      'Please generate a description based on this prompt: $prompt'
+                }
+              ]
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['candidates'][0]['content']['parts'][0]['text'] ?? 'Failed to generate description';
+      } else {
+        print('Error response: ${response.body}');
+        throw Exception('Failed to generate description');
+      }
+    } catch (e) {
+      print('Error generating description: $e');
+      throw Exception('Failed to generate description');
+    }
+  }
+
+  void _showAIPromptDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Generate Description'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Enter a prompt to generate a campaign description. For example: "A campaign to help underprivileged children get access to education"',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _promptController,
+              decoration: const InputDecoration(
+                hintText: 'Enter your prompt here...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (_promptController.text.isNotEmpty) {
+                Navigator.pop(context);
+                if (!mounted) return;
+                setState(() => _isGeneratingDescription = true);
+                
+                try {
+                  final generatedDescription = await _generateDescription(_promptController.text);
+                  if (!mounted) return;
+                  setState(() {
+                    _descriptionController.text = generatedDescription;
+                    _isGeneratingDescription = false;
+                  });
+                } catch (e) {
+                  if (!mounted) return;
+                  setState(() => _isGeneratingDescription = false);
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //   const SnackBar(content: Text('Failed to generate description. Please try again.')),
+                  // );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4ECDC4),
+            ),
+            child: const Text('Generate'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _submit() async {
     if (_formKey.currentState!.validate() && _selectedDate != null && _selectedCategory != null) {
       final uploadedImageUrls = await uploadImagesToSupabase(_images);
@@ -175,11 +278,37 @@ class _CreateCampaignPageState extends State<CreateCampaignPage> {
                 validator: (value) => value == null ? 'Select a category' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Description'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        alignLabelWithHint: true,
+                      ),
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _isGeneratingDescription ? null : _showAIPromptDialog,
+                    icon: _isGeneratingDescription
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4ECDC4)),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.auto_awesome,
+                            color: Color(0xFF4ECDC4),
+                          ),
+                    tooltip: 'Generate description using AI',
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Row(
